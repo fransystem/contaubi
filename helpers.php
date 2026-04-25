@@ -41,9 +41,27 @@ function estado_badge(string $e): string {
     ][$e] ?? 'estado-borrador';
 }
 
-/** Genera el código de 8 dígitos a partir de los 5 niveles. */
-function armar_codigo(int $clase, int $grupo, int $cuenta, int $subcuenta, int $auxiliar): string {
-    return sprintf('%01d%01d%02d%02d%02d', $clase, $grupo, $cuenta, $subcuenta, $auxiliar);
+/** Genera el código de 10 dígitos del PUCT.
+ *  Estructura: C(1) G(1) SG(2) CP(3) CA(3)
+ *    C  = Clase             (1-5)
+ *    G  = Grupo             (1 dígito)
+ *    SG = Subgrupo          (2 dígitos)
+ *    CP = Cuenta Principal  (3 dígitos)
+ *    CA = Cuenta Analítica  (3 dígitos)
+ */
+function armar_codigo(int $clase, int $grupo, int $subgrupo, int $cuenta_principal, int $cuenta_analitica): string {
+    return sprintf('%01d%01d%02d%03d%03d', $clase, $grupo, $subgrupo, $cuenta_principal, $cuenta_analitica);
+}
+
+/** Etiqueta del nivel jerárquico. */
+function nombre_nivel(int $nivel): string {
+    return [
+        1 => 'Clase',
+        2 => 'Grupo',
+        3 => 'Subgrupo',
+        4 => 'Cuenta Principal',
+        5 => 'Cuenta Analítica',
+    ][$nivel] ?? '—';
 }
 
 /** Devuelve el siguiente número de comprobante para el ejercicio (formato: 2026-000123). */

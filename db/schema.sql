@@ -1,6 +1,16 @@
 -- ============================================================
 -- ContaUBI — Sistema Contable Universidad Boliviana de Informática
 -- Schema de base de datos (MySQL 5.7+ / 8.0+)
+--
+-- Estructura del Plan de Cuentas según el PUCT (Plan Único de
+-- Cuentas Tributario) - Bolivia
+--
+--   codigo = C G SG CP CA   (10 dígitos)
+--   C   = Clase             (1 dígito)   cerrado por PUCT
+--   G   = Grupo             (1 dígito)   cerrado por PUCT
+--   SG  = Subgrupo          (2 dígitos)  cerrado por PUCT
+--   CP  = Cuenta Principal  (3 dígitos)  cerrado por PUCT
+--   CA  = Cuenta Analítica  (3 dígitos)  ABIERTO al contribuyente
 -- ============================================================
 
 CREATE DATABASE IF NOT EXISTS contaubi
@@ -9,14 +19,14 @@ CREATE DATABASE IF NOT EXISTS contaubi
 
 USE contaubi;
 
--- ------------------------------------------------------------
--- Empresa (configuración global, una sola fila)
--- ------------------------------------------------------------
 DROP TABLE IF EXISTS movimientos;
 DROP TABLE IF EXISTS comprobantes;
 DROP TABLE IF EXISTS cuentas;
 DROP TABLE IF EXISTS empresa;
 
+-- ------------------------------------------------------------
+-- Empresa (configuración global, una sola fila)
+-- ------------------------------------------------------------
 CREATE TABLE empresa (
     id          INT AUTO_INCREMENT PRIMARY KEY,
     nombre      VARCHAR(150) NOT NULL DEFAULT 'Universidad Boliviana de Informática',
@@ -38,31 +48,32 @@ VALUES ('Universidad Boliviana de Informática', '1023456789', 'La Paz', 'Av. Ar
         'Bs.', 2026, '2026-01-01', '2026-12-31');
 
 -- ------------------------------------------------------------
--- Plan de Cuentas (PUC Bolivia, código de 8 dígitos)
---   codigo = G S CC SS AA
---   G  Clase     (1-5)
---   S  Grupo     (1-9)
---   CC Cuenta    (01-99)
---   SS Subcuenta (01-99)
---   AA Auxiliar  (00-99)  · 00 = mayor sin auxiliar
+-- Plan de Cuentas (PUCT Bolivia, código de 10 dígitos)
+--   clase, grupo:           1 dígito  (cerrados por PUCT)
+--   subgrupo:               2 dígitos (cerrado por PUCT)
+--   cuenta_principal:       3 dígitos (cerrado por PUCT)
+--   cuenta_analitica:       3 dígitos (abierto al contribuyente)
 -- ------------------------------------------------------------
 CREATE TABLE cuentas (
-    id          INT AUTO_INCREMENT PRIMARY KEY,
-    codigo      VARCHAR(8)   NOT NULL,
-    clase       TINYINT      NOT NULL,
-    grupo       TINYINT      NOT NULL,
-    cuenta      TINYINT      NOT NULL,
-    subcuenta   TINYINT      NOT NULL DEFAULT 0,
-    auxiliar    TINYINT      NOT NULL DEFAULT 0,
-    nombre      VARCHAR(120) NOT NULL,
-    descripcion TEXT,
-    naturaleza  ENUM('DEUDORA','ACREEDORA') NOT NULL,
-    es_imputable TINYINT(1) NOT NULL DEFAULT 1,  -- 1 = se pueden registrar movimientos; 0 = solo agrupación
-    activa      TINYINT(1)  NOT NULL DEFAULT 1,
-    creado_en   TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
+    id                 INT AUTO_INCREMENT PRIMARY KEY,
+    codigo             VARCHAR(10)  NOT NULL,
+    clase              TINYINT      NOT NULL,
+    grupo              TINYINT      NOT NULL DEFAULT 0,
+    subgrupo           TINYINT      NOT NULL DEFAULT 0,
+    cuenta_principal   SMALLINT     NOT NULL DEFAULT 0,
+    cuenta_analitica   SMALLINT     NOT NULL DEFAULT 0,
+    nivel              TINYINT      NOT NULL DEFAULT 5,  -- 1=C, 2=G, 3=SG, 4=CP, 5=CA
+    nombre             VARCHAR(160) NOT NULL,
+    descripcion        TEXT,
+    naturaleza         ENUM('DEUDORA','ACREEDORA') NOT NULL,
+    es_imputable       TINYINT(1)   NOT NULL DEFAULT 0,  -- 1 = acepta movimientos (sólo CA); 0 = sólo agrupación
+    es_puct            TINYINT(1)   NOT NULL DEFAULT 1,  -- 1 = pertenece al PUCT (no editable estructuralmente)
+    activa             TINYINT(1)   NOT NULL DEFAULT 1,
+    creado_en          TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uniq_codigo (codigo),
-    UNIQUE KEY uniq_nombre_nivel (clase, grupo, cuenta, subcuenta, nombre),
+    UNIQUE KEY uniq_nombre_nivel (clase, grupo, subgrupo, cuenta_principal, nombre),
     KEY idx_clase (clase),
+    KEY idx_nivel (nivel),
     KEY idx_imputable (es_imputable, activa)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

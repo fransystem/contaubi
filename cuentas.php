@@ -14,6 +14,8 @@ $fClase     = $_GET['clase']     ?? '';
 $fNaturaleza= $_GET['naturaleza']?? '';
 $fEstado    = $_GET['estado']    ?? '';
 $fImputable = $_GET['imputable'] ?? '';
+$fNivel     = $_GET['nivel']     ?? '';
+$fOrigen    = $_GET['origen']    ?? '';
 $fQ         = trim($_GET['q']    ?? '');
 
 $where  = []; $params = []; $types = '';
@@ -23,6 +25,9 @@ if ($fEstado === 'activa')   { $where[]='activa = 1'; }
 if ($fEstado === 'inactiva') { $where[]='activa = 0'; }
 if ($fImputable === 'si') { $where[]='es_imputable = 1'; }
 if ($fImputable === 'no') { $where[]='es_imputable = 0'; }
+if (ctype_digit($fNivel) && $fNivel >= 1 && $fNivel <= 5) { $where[]='nivel = ?'; $types.='i'; $params[]=(int)$fNivel; }
+if ($fOrigen === 'puct')   { $where[]='es_puct = 1'; }
+if ($fOrigen === 'propia') { $where[]='es_puct = 0'; }
 if ($fQ !== '') { $where[]='(LOWER(nombre) LIKE ? OR codigo LIKE ?)'; $types.='ss'; $like='%'.mb_strtolower($fQ).'%'; $params[]=$like; $params[]=$like; }
 
 $sql = "SELECT * FROM cuentas " . ($where ? 'WHERE '.implode(' AND ',$where) : '') . " ORDER BY codigo ASC";
@@ -76,6 +81,23 @@ include __DIR__ . '/layout_top.php';
     </select>
   </div>
   <div class="form-group">
+    <label class="form-label">Nivel jerárquico</label>
+    <select name="nivel" class="form-control">
+      <option value="">Todos</option>
+      <?php foreach ([1=>'1 · Clase',2=>'2 · Grupo',3=>'3 · Subgrupo',4=>'4 · Cuenta Principal',5=>'5 · Cuenta Analítica'] as $k=>$v): ?>
+        <option value="<?= $k ?>" <?= (string)$fNivel===(string)$k?'selected':'' ?>><?= $v ?></option>
+      <?php endforeach; ?>
+    </select>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Origen</label>
+    <select name="origen" class="form-control">
+      <option value="">Todas</option>
+      <option value="puct"   <?= $fOrigen==='puct'  ?'selected':'' ?>>Sólo PUCT (SIN)</option>
+      <option value="propia" <?= $fOrigen==='propia'?'selected':'' ?>>Cuentas analíticas propias</option>
+    </select>
+  </div>
+  <div class="form-group">
     <label class="form-label">Estado</label>
     <select name="estado" class="form-control">
       <option value="">Cualquiera</option>
@@ -97,7 +119,7 @@ include __DIR__ . '/layout_top.php';
   <span class="text-muted"><?= count($rows) ?> resultado(s)</span>
   <div class="no-print" style="display:flex;gap:.5rem">
     <button class="btn" onclick="window.print()"><i class="bi bi-printer"></i> Imprimir</button>
-    <a class="btn btn-primary" href="cuenta_crear.php"><i class="bi bi-plus-circle"></i> Nueva Cuenta</a>
+    <a class="btn btn-primary" href="cuenta_crear.php"><i class="bi bi-plus-circle"></i> Nueva Cuenta Analítica</a>
   </div>
 </div>
 
@@ -117,10 +139,12 @@ include __DIR__ . '/layout_top.php';
       <table class="table">
         <thead>
           <tr>
-            <th style="min-width:110px">Código</th>
+            <th style="min-width:120px">Código</th>
             <th>Nombre / Descripción</th>
             <th>Clase</th>
+            <th class="text-center">Nivel</th>
             <th>Nat.</th>
+            <th class="text-center">Origen</th>
             <th class="text-center">Imputable</th>
             <th class="text-center">Activa</th>
             <th class="text-center no-print"></th>
@@ -139,7 +163,15 @@ include __DIR__ . '/layout_top.php';
               <?php endif; ?>
             </td>
             <td><span class="badge <?= clase_badge((int)$r['clase']) ?>"><?= nombre_clase((int)$r['clase']) ?></span></td>
+            <td class="text-center"><span class="text-muted" style="font-size:.78rem" title="<?= h(nombre_nivel((int)$r['nivel'])) ?>">N<?= (int)$r['nivel'] ?></span></td>
             <td><span class="text-muted" style="font-size:.78rem"><?= h(substr($r['naturaleza'],0,4)) ?>.</span></td>
+            <td class="text-center">
+              <?php if ($r['es_puct']): ?>
+                <span class="text-muted" style="font-size:.7rem" title="Plan Único de Cuentas Tributario (SIN)">PUCT</span>
+              <?php else: ?>
+                <span style="font-size:.7rem;color:var(--gold,#c8a648)" title="Cuenta analítica del contribuyente">propia</span>
+              <?php endif; ?>
+            </td>
             <td class="text-center">
               <?php if ($r['es_imputable']): ?>
                 <i class="bi bi-check-circle-fill" style="color:#6ee9a6" title="Acepta movimientos"></i>

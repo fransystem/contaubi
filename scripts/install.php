@@ -1,7 +1,8 @@
 <?php
 /**
  * ContaUBI — instalador CLI/Web.
- * Crea la base, schema y carga el PUC de Bolivia.
+ * Crea la base, schema y carga el PUCT (Plan Único de Cuentas Tributario)
+ * de Bolivia, fijado por el SIN.
  *
  * Uso:
  *   php scripts/install.php
@@ -45,7 +46,7 @@ if ($conn->multi_query($schema)) {
 
 if ($conn->multi_query($seed)) {
     do { /* drain */ } while ($conn->more_results() && $conn->next_result());
-    $line("✓ PUC Bolivia cargado (db/seed_puc.sql)");
+    $line("✓ PUCT Bolivia cargado (db/seed_puc.sql)");
 } else {
     $line("✗ Error al ejecutar seed: " . $conn->error);
     exit(1);

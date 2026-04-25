@@ -10,8 +10,13 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') { header('Location: cuentas.php'); ex
 $id = (int)($_POST['id'] ?? 0);
 if ($id <= 0) { flash_set('ID inválido.','danger'); header('Location: cuentas.php'); exit; }
 
-$row = $conn->query("SELECT codigo FROM cuentas WHERE id=$id")->fetch_assoc();
+$row = $conn->query("SELECT codigo, es_puct FROM cuentas WHERE id=$id")->fetch_assoc();
 if (!$row) { flash_set('Cuenta no encontrada.','danger'); header('Location: cuentas.php'); exit; }
+
+if ((int)$row['es_puct'] === 1) {
+    flash_set("La cuenta {$row['codigo']} pertenece al PUCT y no puede eliminarse.", 'danger');
+    header('Location: cuentas.php'); exit;
+}
 
 $cnt = (int)$conn->query("SELECT COUNT(*) c FROM movimientos WHERE cuenta_id=$id")->fetch_assoc()['c'];
 if ($cnt > 0) {
